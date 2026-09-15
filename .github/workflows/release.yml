@@ -1,0 +1,105 @@
+name: Release
+
+# Cuts a GitHub Release from a tag and attaches the shaded extension JAR.
+# Tag the commit you want to ship, push the tag, and this does the rest:
+#   git tag v1.1.0 && git push origin v1.1.0
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to release (e.g. v1.1.0)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # The POM targets Java 17, so the release build has to match.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Build shaded JAR
+        run: mvn -B clean package
+
+      - name: Stage release asset
+        id: asset
+        run: |
+          set -euo pipefail
+
+          # Locate the shaded JAR without hardcoding the version. original-*.jar is the
+          # pre-shade artifact and carries none of the bundled dependencies.
+          jar=$(find target -maxdepth 1 -name '*.jar' ! -name 'original-*' -print -quit)
+          if [ -z "$jar" ]; then
+            echo "::error::no shaded JAR in target/"
+            exit 1
+          fi
+
+          tag='${{ inputs.tag || github.ref_name }}'
+
+          # The built filename must keep matching EntryPoint in BappManifest.bmf, because the
+          # BApp store builds from source itself. Only the published asset gets the tag.
+          asset="pdf-render-${tag}.jar"
+          cp "$jar" "$asset"
+
+          {
+            echo "asset=$asset"
+            echo "tag=$tag"
+            echo "sha256=$(sha256sum "$asset" | cut -d' ' -f1)"
+            echo "size=$(du -h "$asset" | cut -f1)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Write release notes
+        run: |
+          cat > release-notes.md <<'NOTES'
+          Burp Suite extension that renders PDF, XLSX, XLS, CSV and TSV response bodies
+          in a custom response editor tab.
+
+          ## Install
+
+          Burp Suite -> Extensions -> Add -> Extension type: Java -> select the JAR below.
+
+          Requires Burp Suite 2023.10 or later (Montoya API) and Java 17+.
+          NOTES
+
+          cat >> release-notes.md <<NOTES
+
+          ## Artifact
+
+          \`${{ steps.asset.outputs.asset }}\` (${{ steps.asset.outputs.size }})
+
+          \`\`\`
+          sha256  ${{ steps.asset.outputs.sha256 }}
+          \`\`\`
+          NOTES
+
+      # gh is preinstalled on GitHub runners, so no third-party action is needed to publish.
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag='${{ steps.asset.outputs.tag }}'
+          asset='${{ steps.asset.outputs.asset }}'
+
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $tag exists; replacing the attached JAR."
+            gh release upload "$tag" "$asset" --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$tag" "$asset" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "$tag" \
+              --notes-file release-notes.md \
+              --verify-tag
+          fi
