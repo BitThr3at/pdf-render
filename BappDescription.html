@@ -1,15 +1,22 @@
-<p>This extension enables rendering of PDF files directly within HTTP responses. When a response contains a PDF document, it is displayed in a dedicated tab, making it easy to inspect content without leaving the Burp Suite interface.</p>
+<p>This extension renders downloadable file bodies directly within HTTP responses. When a response contains a document or a spreadsheet, it is displayed in a dedicated tab, making it easy to inspect content without leaving the Burp Suite interface.</p>
 
 <h2>Features</h2>
 <ul>
-  <li>Automatically detects and renders PDF files in HTTP responses</li>
-  <li>Displays rendered PDF content in a custom response tab</li>
-  <li>Supports interactive viewing and scrolling within the embedded PDF</li>
+  <li>Automatically detects and renders PDF, XLSX, XLS, CSV and TSV bodies in HTTP responses</li>
+  <li>Detection works on magic bytes, and expands gzip/deflate encoded bodies before sniffing them</li>
+  <li>PDF viewing with page navigation, zoom, fit, rotation, text selection, find, thumbnails and bookmarks, on a toolbar that follows the active Burp theme</li>
+  <li>Spreadsheets open in a sortable, filterable grid with one tab per sheet and the source row numbers kept in view</li>
+  <li>Shows the filename, type and size of the served file, and can save the body to disk</li>
+  <li>Read-only by design: annotation and form editing are disabled, and parsing is capped to protect Burp against hostile files</li>
+  <li>Spreadsheet support adds no third-party libraries, so the extension stays the same size as the PDF-only version</li>
 </ul>
 
 <h2>Usage</h2>
 <ol>
-  <li>Browse or intercept traffic containing PDF responses.</li>
-  <li>Select a response containing a PDF file.</li>
-  <li>Navigate to the custom PDF tab in the response viewer to see the rendered document.</li>
+  <li>Browse or intercept traffic containing file downloads.</li>
+  <li>Select a response containing a PDF or spreadsheet.</li>
+  <li>Navigate to the custom tab in the response viewer to see the rendered document.</li>
 </ol>
+
+<h2>Notes</h2>
+<p>Formulas are not evaluated; the value cached alongside the formula by the producing application is shown. Legacy <code>.xls</code> support covers the common cell records, and password-protected workbooks are reported rather than partially parsed.</p>

@@ -31,10 +31,12 @@ public class Montoya implements BurpExtension {
         api.logging().logToOutput("");
         api.logging().logToOutput("===============================================");
         api.logging().logToOutput("");
+        api.logging().logToOutput("Renders PDF, CSV, TSV, XLSX and XLS response bodies in a custom editor tab.");
         api.logging().logToOutput("");
         api.logging().logToOutput("==========License==========\n" +
                 "This plugin use the library ICEpdf licensed under Apache License 2.0\n" +
-                " - http://www.icesoft.org/java/projects/ICEpdf/overview.jsf\n");
+                " - http://www.icesoft.org/java/projects/ICEpdf/overview.jsf\n" +
+                "Spreadsheet parsing (CSV/TSV/XLSX/XLS) is implemented on the JDK, with no extra libraries.\n");
 
         // Pass the API instance to CustomHttpResponseEditor
         CustomHttpResponseEditor customHttpRequestResponseEditor = new CustomHttpResponseEditor(api);
